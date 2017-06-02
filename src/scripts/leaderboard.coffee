@@ -260,7 +260,7 @@ module.exports = (robot) ->
     tops = scoreKeeper[direction](amount, room)
 
     output = {};
-    output.items = _.map(tops, (item) -> { label: item.name, values: item.score })
+    output.items = _.map(tops, (item) -> { label: item.name, value: item.score })
 
     console.log("FETCHING TOP: " + output);
     res.end JSON.stringify(output, null, 2)
