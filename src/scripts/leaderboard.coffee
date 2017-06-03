@@ -173,9 +173,8 @@ module.exports = (robot) ->
   robot.respond /register (.+)/i, (msg) ->
     name = msg.match[1].trim().toLowerCase()
     room = msg.message.room || 'escape'
-    url = msg.match[3].trim()
 
-    scoreKeeper.addTeam(name, room, url)
+    scoreKeeper.addTeam(name, room, "no url")
     msg.send "Your team #{name} has been registered for #{url}."
 
   robot.respond /add (\d+) (points\s)+?(for\s)+?(.+)/i, (msg) ->
