@@ -175,7 +175,7 @@ module.exports = (robot) ->
     room = msg.message.room || 'escape'
 
     scoreKeeper.addTeam(name, room, "no url")
-    msg.send "Your team #{name} has been registered for #{url}."
+    msg.send "Your team #{name} has been registered."
 
   robot.respond /add (\d+) (points\s)+?(for\s)+?(.+)/i, (msg) ->
     points = parseInt(msg.match[1])
