@@ -68,8 +68,9 @@ class ScoreKeeper
   removeTeam: (team, room) ->
     if typeof @cache.scores[room] == "object"
       delete @cache.scores[room][team]
-      delete @cache.scoreLog[room][team]
       delete @cache.teamUrls[room][team]
+      if (@cache.scoreLog[room][team])
+          delete @cache.scoreLog[room][team]
       @save(room)
 
   addTeam: (team, room, url) ->
@@ -161,7 +162,15 @@ module.exports = (robot) ->
   scoreKeeper = new ScoreKeeper(robot)
   reasonsKeyword = process.env.HUBOT_LEADERBOARD_REASONS or 'raisins'
 
-  robot.respond /register (.+)?(\sfor\s)+(http\:\/\/.*\.heroku\.com)+/i, (msg) ->
+  robot.respond /register (.+)?(\sfor\s)+(http.*\.com)+/i, (msg) ->
+    name = msg.match[1].trim().toLowerCase()
+    room = msg.message.room || 'escape'
+    url = msg.match[3].trim()
+
+    scoreKeeper.addTeam(name, room, url)
+    msg.send "Your team #{name} has been registered for #{url}."
+
+  robot.respond /register (.+)/i, (msg) ->
     name = msg.match[1].trim().toLowerCase()
     room = msg.message.room || 'escape'
     url = msg.match[3].trim()
