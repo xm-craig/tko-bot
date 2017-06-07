@@ -27,30 +27,46 @@ class ScoreKeeper
       scoreLog: {}
       teamUrls: {}
       scores: {}
+      ranks: {}
+      prevRanks: {}
 
     if typeof @robot.brain.data == "object"
       @robot.brain.data.scores ||= {}
       @robot.brain.data.scoreLog ||= {}
       @robot.brain.data.teamUrls ||= {}
+      @robot.brain.data.ranks ||= {}
+      @robot.brain.data.prevRanks ||= {}
       @cache.scores = @robot.brain.data.scores
       @cache.scoreLog = @robot.brain.data.scoreLog
       @cache.teamUrls = @robot.brain.data.teamUrls
+      @cache.ranks = @robot.brain.data.ranks
+      @cache.prevRanks = @robot.brain.data.prevRanks
 
     @robot.brain.on 'loaded', =>
       @robot.brain.data.scores ||= {}
       @robot.brain.data.scoreLog ||= {}
       @robot.brain.data.teamUrls ||= {}
+      @robot.brain.data.ranks ||= {}
+      @robot.brain.data.prevRanks ||= {}
       @cache.scores = @robot.brain.data.scores
       @cache.scoreLog = @robot.brain.data.scoreLog
       @cache.teamUrls = @robot.brain.data.teamUrls
+      @cache.ranks = @robot.brain.data.ranks
+      @cache.prevRanks = @robot.brain.data.prevRanks
 
   getTeam: (team, room) ->
     unless typeof @cache.scores[room] == "object"
       @cache.scores[room] = {}
     unless typeof @cache.teamUrls[room] == "object"
       @cache.teamUrls[room] = {}
+    unless typeof @cache.ranks[room] == "object"
+      @cache.ranks[room] = {}
+    unless typeof @cache.prevRanks[room] == "object"
+      @cache.prevRanks[room] = {}
 
     @cache.scores[room][team] ||= 0
+    @cache.ranks[room][team] ||= -1
+    @cache.prevRanks[room][team] ||= -1
     @cache.teamUrls[room][team] ||= "EMPTY"
     team
 
@@ -58,6 +74,8 @@ class ScoreKeeper
     @robot.brain.data.scores[room] = @cache.scores[room]
     @robot.brain.data.scoreLog[room] = @cache.scoreLog[room]
     @robot.brain.data.teamUrls[room] = @cache.teamUrls[room]
+    @robot.brain.data.prevRanks[room] = @cache.prevRanks[room]
+    @robot.brain.data.ranks[room] = @cache.ranks[room]
     @robot.brain.emit('save', @robot.brain.data)
 
   saveTeam: (team, room) ->
@@ -106,6 +124,14 @@ class ScoreKeeper
       @cache.teamUrls[room] = {}
     @cache.teamUrls[room][team] = url
 
+  setRank: (rank, team, room) ->
+    unless typeof @cache.ranks[room] == "object"
+      @cache.ranks[room] = {}
+
+    if @cache.ranks[room][team] > -1
+      @cache.prevRanks[room][team] = @cache.ranks[room][team]
+    @cache.ranks[room][team] = rank
+
   isSpam: (team, room) ->
     @cache.scoreLog[room] ||= {}
 
@@ -143,7 +169,7 @@ class ScoreKeeper
   registrations: (room) ->
     regs = []
     for name, score of @cache.scores[room]
-      regs.push(name: name, score: score, url: @cache.teamUrls[room][name])
+      regs.push(name: name, score: score, url: @cache.teamUrls[room][name], rank: @cache.ranks[room][name])
     _.sortBy( regs, 'name' )
 
   top: (amount, room) ->
@@ -236,6 +262,24 @@ module.exports = (robot) ->
     msg.send message.join("\n")
 
 
+  robot.respond /rank/i, (msg) ->
+    room = msg.message.room || 'escape'
+    message = []
+
+    console.log("RANKING: " + room);
+
+    if scoreKeeper.registrationCount(room) > 0
+      tops = scoreKeeper.top(25, room)
+
+      for i in [0..tops.length-1]
+        scoreKeeper.setRank(i, tops[i].name, room)
+      message.push("Ranks have been set.")
+    else
+      message.push("No registrations yet.")
+
+    msg.send message.join("\n")
+
+
   robot.respond /list/i, (msg) ->
     room = msg.message.room || 'escape'
     message = []
@@ -243,7 +287,7 @@ module.exports = (robot) ->
     if scoreKeeper.registrationCount(room) > 0
       regs = scoreKeeper.registrations(room)
       for i in [0..regs.length-1]
-        message.push("#{i+1}. #{regs[i].name} : #{regs[i].url} : #{regs[i].score}  ")
+        message.push("#{i+1}. #{regs[i].name} : #{regs[i].url} : score #{regs[i].score} : rank #{regs[i].rank}  ")
     else
       message.push("No registrations yet.")
 
@@ -263,7 +307,7 @@ module.exports = (robot) ->
 
     query = querystring.parse(req._parsedUrl.query)
     direction = query.direction || "top"
-    amount = query.limit || 10
+    amount = query.limit || 20
 
     tops = scoreKeeper[direction](amount, room)
 
