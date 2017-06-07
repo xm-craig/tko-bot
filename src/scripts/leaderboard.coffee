@@ -169,7 +169,7 @@ class ScoreKeeper
   registrations: (room) ->
     regs = []
     for name, score of @cache.scores[room]
-      regs.push(name: name, score: score, url: @cache.teamUrls[room][name], rank: @cache.ranks[room][name])
+      regs.push(name: name, score: score, url: @cache.teamUrls[room][name], rank: @cache.ranks[room][name], prevRank: @cache.prevRanks[room][name])
     _.sortBy( regs, 'name' )
 
   top: (amount, room) ->
@@ -314,5 +314,21 @@ module.exports = (robot) ->
     output = {};
     output.items = _.map(tops, (item) -> { label: item.name, value: item.score })
 
-    console.log("FETCHING TOP: " + output);
+    console.log("*** SCORES: " + output);
+    res.end JSON.stringify(output, null, 2)
+
+  robot.router.get "/#{robot.name}/ranks/:room", (req, res) ->
+    room = req.params.room
+
+    regs = scoreKeeper.registrations(room)
+    regs.sort((a,b) -> b.score - a.score)
+
+    output = {};
+    output.items = _.map(regs, (item) ->
+      if item.prevRank > -1 and item.prevRank != item.rank
+          return { label: item.name, value: item.score, previous_rank: item.prevRank }
+      return { label: item.name, value: item.score }
+    )
+
+    console.log("*** RANKS: " + output);
     res.end JSON.stringify(output, null, 2)
