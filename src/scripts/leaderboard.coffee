@@ -275,8 +275,26 @@ module.exports = (robot) ->
       tops = scoreKeeper.top(25, room)
 
       for i in [0..tops.length-1]
-        scoreKeeper.setRank(i, tops[i].name, room)
+        scoreKeeper.setRank(i+1, tops[i].name, room)
       message.push("Ranks have been set.")
+    else
+      message.push("No registrations yet.")
+
+    msg.send message.join("\n")
+
+
+  robot.respond /clear ranks/i, (msg) ->
+    room = msg.message.room || 'escape'
+    message = []
+
+    console.log("CLEARING RANKS: " + room);
+
+    if scoreKeeper.registrationCount(room) > 0
+      tops = scoreKeeper.top(100, room)
+
+      for i in [0..tops.length-1]
+        scoreKeeper.setRank(-1, tops[i].name, room)
+      message.push("Ranks have been cleared.")
     else
       message.push("No registrations yet.")
 
