@@ -128,9 +128,11 @@ class ScoreKeeper
     unless typeof @cache.ranks[room] == "object"
       @cache.ranks[room] = {}
 
+    team = @getTeam(team, room)
     if @cache.ranks[room][team] > -1
       @cache.prevRanks[room][team] = @cache.ranks[room][team]
     @cache.ranks[room][team] = rank
+    @saveTeam(team, room)
 
   isSpam: (team, room) ->
     @cache.scoreLog[room] ||= {}
@@ -169,6 +171,7 @@ class ScoreKeeper
   registrations: (room) ->
     regs = []
     for name, score of @cache.scores[room]
+      team = @getTeam(name, room)
       regs.push(name: name, score: score, url: @cache.teamUrls[room][name], rank: @cache.ranks[room][name], prevRank: @cache.prevRanks[room][name])
     _.sortBy( regs, 'name' )
 
@@ -314,7 +317,7 @@ module.exports = (robot) ->
     output = {};
     output.items = _.map(tops, (item) -> { label: item.name, value: item.score })
 
-    console.log("*** SCORES: " + output);
+    console.log("*** SCORES: " + JSON.stringify(output, null, 2));
     res.end JSON.stringify(output, null, 2)
 
   robot.router.get "/#{robot.name}/ranks/:room", (req, res) ->
@@ -330,5 +333,5 @@ module.exports = (robot) ->
       return { label: item.name, value: item.score }
     )
 
-    console.log("*** RANKS: " + output);
+    console.log("*** RANKS: " + JSON.stringify(output, null, 2));
     res.end JSON.stringify(output, null, 2)
